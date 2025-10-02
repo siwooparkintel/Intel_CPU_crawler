@@ -246,7 +246,10 @@ def search(db_path, name_pattern):
                 if cpu['maximum_turbo_power']:
                     print(f"   Turbo Power: {cpu['maximum_turbo_power']} W")
                 if cpu['total_cores']:
-                    print(f"   Cores: {cpu['total_cores']} ({cpu['performance_cores']}P + {cpu['efficiency_cores']}E)")
+                    # Handle None values for performance/efficiency cores (display as 0)
+                    p_cores = cpu['performance_cores'] if cpu['performance_cores'] is not None else 0
+                    e_cores = cpu['efficiency_cores'] if cpu['efficiency_cores'] is not None else 0
+                    print(f"   Cores: {cpu['total_cores']} ({p_cores}P + {e_cores}E)")
                 if cpu['max_turbo_frequency']:
                     print(f"   Max Frequency: {cpu['max_turbo_frequency']} GHz")
                 if cpu['lithography']:

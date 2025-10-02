@@ -8,6 +8,7 @@ import re
 import logging
 from typing import List, Dict, Any, Optional
 from urllib.parse import urljoin, urlparse
+from utils import normalize_unicode_text
 
 
 class IntelCpuParser:
@@ -270,6 +271,8 @@ class IntelCpuParser:
         try:
             # Extract CPU name with URL context
             cpu_name = self._extract_cpu_name_with_url(soup, url)
+            # Normalize Unicode characters in CPU name
+            cpu_name = normalize_unicode_text(cpu_name)
             
             cpu_data = {
                 'url': url,
@@ -365,7 +368,10 @@ class IntelCpuParser:
             if 'intel' in title_text.lower():
                 # Extract the CPU name part (before specifications)
                 name_part = title_text.split('|')[0].strip()
-                name_part = name_part.split('-')[0].strip()  # Remove extra details
+                # Don't split on hyphen for processor names (i5-110, i7-1234U, etc.)
+                # Only remove specification-related suffixes
+                name_part = re.sub(r'\s*-\s*specifications.*$', '', name_part, flags=re.IGNORECASE)
+                name_part = re.sub(r'\s*specs.*$', '', name_part, flags=re.IGNORECASE)
                 if len(name_part) > 10:  # Reasonable length check
                     return name_part
         return None
@@ -463,6 +469,16 @@ class IntelCpuParser:
             # Extract specifications from structured sections
             specs.update(self._extract_section_specifications(soup))
             
+            # Extract from modern tech-section-row structure (newer Intel pages)
+            tech_row_specs = self._extract_tech_section_row_specifications(soup)
+            
+            # Merge tech-row specs into appropriate categories
+            for key, value in tech_row_specs.items():
+                category = self._categorize_specification(key)
+                if category not in specs:
+                    specs[category] = {}
+                specs[category][key] = value
+            
             # Extract from tables and key-value pairs (fallback method)
             table_specs = self._extract_table_specifications(soup)
             
@@ -477,10 +493,52 @@ class IntelCpuParser:
             # Extract legacy format for backward compatibility
             legacy_specs = self._extract_legacy_specifications(soup)
             if legacy_specs:
-                specs['legacy'] = legacy_specs
+                # Categorize legacy specs into proper sections instead of keeping in legacy
+                categorized_legacy = self._categorize_legacy_specifications(legacy_specs)
+                for category, category_specs in categorized_legacy.items():
+                    if category not in specs:
+                        specs[category] = {}
+                    specs[category].update(category_specs)
+                
+                # Keep only uncategorized specs in legacy
+                uncategorized = {k: v for k, v in legacy_specs.items() 
+                               if not any(k in cat_specs for cat_specs in categorized_legacy.values())}
+                if uncategorized:
+                    specs['legacy'] = uncategorized
             
         except Exception as e:
             self.logger.error(f"Error extracting specifications: {str(e)}")
+        
+        # Normalize Unicode in all specification values
+        specs = self._normalize_specification_unicode(specs)
+        
+        return specs
+    
+    def _extract_tech_section_row_specifications(self, soup: BeautifulSoup) -> Dict[str, str]:
+        """Extract specifications from modern Intel pages using tech-section-row structure."""
+        specs = {}
+        
+        try:
+            # Find all rows with tech-section-row class (modern Intel page structure)
+            rows = soup.find_all('div', class_='tech-section-row')
+            
+            for row in rows:
+                # Find label and data divs
+                label_div = row.find('div', class_='tech-label')
+                data_div = row.find('div', class_='tech-data')
+                
+                if label_div and data_div:
+                    key = label_div.get_text(strip=True)
+                    value = data_div.get_text(strip=True)
+                    
+                    if key and value:
+                        # Clean the key (remove footnote markers like ‡, †, etc.)
+                        clean_key = self._clean_specification_key(key)
+                        specs[clean_key] = value
+                        self.logger.debug(f"Extracted from tech-section-row: {clean_key} = {value}")
+        
+        except Exception as e:
+            self.logger.error(f"Error extracting tech-section-row specifications: {str(e)}")
         
         return specs
     
@@ -701,8 +759,8 @@ class IntelCpuParser:
                 'l3_cache': r'l3 cache\s*(\d+(?:\.\d+)?)\s*mb',
                 
                 # Process technology (critical for power characteristics)
-                # Restricted to explicit lithography mentions only to avoid false positives
-                'lithography': r'(?:cpu\s+)?lithography\s*(?::|\s)?\s*(\d+\s*nm|intel\s+[1-9]|intel\s+1[0-9])',
+                # Simplified: just look for "Lithography" or "CPU Lithography" label and parse paired value
+                'lithography': r'(?:cpu\s+)?lithography\s*[:\s]+([^\n\r<>]+?)(?=\s*(?:\n|\r|<|$))',
                 
                 # Memory (affects system power)
                 'max_memory_size': r'max memory.*?(\d+)\s*gb',
@@ -788,6 +846,22 @@ class IntelCpuParser:
         
         return clean_key
     
+    def _normalize_specification_unicode(self, specs: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize Unicode characters in all specification values."""
+        try:
+            def normalize_dict(d):
+                if isinstance(d, dict):
+                    return {k: normalize_dict(v) for k, v in d.items()}
+                elif isinstance(d, str):
+                    return normalize_unicode_text(d)
+                else:
+                    return d
+            
+            return normalize_dict(specs)
+        except Exception as e:
+            self.logger.error(f"Error normalizing Unicode in specifications: {str(e)}")
+            return specs
+    
     def _categorize_specification(self, key: str) -> str:
         """Categorize a specification into appropriate section."""
         key_lower = key.lower()
@@ -823,6 +897,73 @@ class IntelCpuParser:
         # Default category
         return 'general'
     
+    def _categorize_legacy_specifications(self, legacy_specs: Dict[str, str]) -> Dict[str, Dict[str, str]]:
+        """Categorize legacy specifications into proper sections."""
+        categorized = {
+            'essentials': {},
+            'cpu_specifications': {},
+            'memory_specifications': {},
+            'gpu_specifications': {},
+            'npu_specifications': {},
+            'expansion_options': {},
+            'package_specifications': {},
+            'advanced_technologies': {},
+            'security_reliability': {},
+            'supplemental_information': {}
+        }
+        
+        # Define categorization mappings
+        category_mappings = {
+            'essentials': [
+                'product_collection', 'vertical_segment', 'launch_date', 'code_name', 'instruction_set'
+            ],
+            'cpu_specifications': [
+                'total_cores', 'performance_cores', 'efficiency_cores', 'total_threads',
+                'max_turbo_frequency', 'base_frequency', 'performance_core_max_frequency',
+                'efficiency_core_max_frequency', 'performance_core_base_frequency',
+                'efficiency_core_base_frequency', 'turbo_boost_max_frequency',
+                'cache_size', 'smart_cache', 'l1_cache', 'l2_cache', 'l3_cache', 'lithography'
+            ],
+            'memory_specifications': [
+                'max_memory_size', 'memory_channels', 'memory_types', 'memory_speed'
+            ],
+            'gpu_specifications': [
+                'gpu_name', 'graphics_max_frequency', 'graphics_base_frequency',
+                'xe_cores', 'execution_units'
+            ],
+            'npu_specifications': [
+                'npu_name', 'npu_tops', 'overall_tops', 'ai_boost'
+            ],
+            'expansion_options': [
+                'socket'
+            ],
+            'package_specifications': [
+                'processor_base_power', 'maximum_turbo_power', 'minimum_assured_power',
+                'tdp', 'configurable_tdp_up', 'configurable_tdp_down',
+                'max_operating_temperature', 'package_size', 'tjunction'
+            ],
+            'advanced_technologies': [
+                'speed_shift', 'turbo_boost', 'enhanced_speedstep', 'thermal_monitoring',
+                'configurable_tdp'
+            ]
+        }
+        
+        # Categorize each specification
+        for spec_key, spec_value in legacy_specs.items():
+            categorized_spec = False
+            for category, spec_list in category_mappings.items():
+                if spec_key in spec_list:
+                    categorized[category][spec_key] = spec_value
+                    categorized_spec = True
+                    break
+            
+            # If not categorized, put in supplemental_information
+            if not categorized_spec:
+                categorized['supplemental_information'][spec_key] = spec_value
+        
+        # Remove empty categories
+        return {k: v for k, v in categorized.items() if v}
+    
     def _find_parent_section(self, element) -> str:
         """Find which section an element belongs to based on nearby headers."""
         try:
@@ -855,16 +996,15 @@ class IntelCpuParser:
         return 'general'
     
     def _extract_lithography_enhanced(self, soup: BeautifulSoup, text: str) -> Optional[str]:
-        """Enhanced lithography detection with restricted patterns for accuracy."""
+        """Simplified lithography detection - look for 'Lithography' or 'CPU Lithography' label and parse paired value."""
         try:
-            # Restricted patterns - only explicit lithography mentions to avoid false positives
+            # Simple pattern: find "Lithography" or "CPU Lithography" label followed by the value
+            # This matches the actual structure on Intel spec pages
             lithography_patterns = [
-                # Direct lithography mentions only (most accurate)
-                r'(?:cpu\s+)?lithography\s*(?::|\s)?\s*([^\n\r<>]{1,50}(?:\d+\s*nm|intel\s+[1-9]|intel\s+1[0-9]))',
-                r'lithography\s*(?::|\s)?\s*([^\n\r<>]{1,50}(?:\d+\s*nm|intel\s+[1-9]|intel\s+1[0-9]))',
+                r'(?:cpu\s+)?lithography\s*[:\s]+([^\n\r<>]+?)(?=\s*(?:\n|\r|<|$))',
             ]
             
-            # Search through all patterns
+            # Search through patterns
             for pattern in lithography_patterns:
                 matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
                 for match in matches:
@@ -873,7 +1013,7 @@ class IntelCpuParser:
                     # Clean and validate the extracted value
                     cleaned = self._clean_lithography_value(extracted)
                     if cleaned:
-                        self.logger.debug(f"Found lithography: {cleaned} using pattern: {pattern}")
+                        self.logger.debug(f"Found lithography: {cleaned}")
                         return cleaned
             
             # Fallback: Look for standalone technology values in structured data
@@ -917,13 +1057,14 @@ class IntelCpuParser:
                 return None
         
         # Validate that it contains meaningful lithography information
+        # More permissive validation since we're now getting values directly paired with "Lithography" label
         valid_patterns = [
             r'\d+\s*nm',                    # 14 nm, 10nm, etc.
-            r'intel\s+(?:[1-9]|1[0-9])\b', # Intel 3, Intel 7, Intel 10, etc. (not 32/64)
-            r'n\d+',                       # N5, N3 (TSMC naming)
+            r'intel\s+(?:[3-9]|1[0-9])\b', # Intel 3, Intel 7, Intel 10, etc. (not 32/64)
+            r'n\d+[a-z]?\b',                # N5, N3, N3B (TSMC naming)
             r'\d+\s*nanometer',            # 7 nanometer
             r'\d+\s*nm\s*\+',              # 14nm+, enhanced processes
-            r'intel\s+(?:[1-9]|1[0-9])\s*\+', # Intel 7+
+            r'intel\s+(?:[3-9]|1[0-9])\s*\+', # Intel 7+
             r'\d+\s*nm\s+(?:finfet|gaafet)', # Advanced transistor types
             r'tsmc\s+n\d+',                # TSMC N5, N3, etc.
             r'samsung\s+\d+\s*nm',         # Samsung processes

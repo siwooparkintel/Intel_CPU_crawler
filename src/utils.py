@@ -179,3 +179,68 @@ def safe_extract_number(text: str, pattern: str) -> str:
         return match.group(1) if match else ""
     except Exception:
         return ""
+
+
+def normalize_unicode_text(text: str) -> str:
+    """
+    Normalize Unicode text to fix encoding issues.
+    
+    Fixes common issues like:
+    - Double-encoded Unicode sequences
+    - Malformed trademark/registered symbols  
+    - Mixed encoding artifacts from HTML parsing
+    
+    Args:
+        text: Text to normalize
+        
+    Returns:
+        Normalized Unicode text
+    """
+    if not text:
+        return text
+    
+    try:
+        import re
+        
+        # Handle malformed UTF-8 encoding issues common in web scraping
+        # Intel pages often have double-encoded UTF-8 for trademark symbols
+        
+        # First try to fix by re-encoding and decoding (fixes most UTF-8 issues)
+        try:
+            # This handles cases where text was decoded with wrong encoding
+            if isinstance(text, str):
+                # Try to encode as latin-1 then decode as utf-8 to fix double encoding
+                fixed = text.encode('latin-1').decode('utf-8')
+                text = fixed
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            # If that fails, use direct character replacement
+            pass
+        
+        # Direct character replacements for known malformed sequences
+        replacements = {
+            # Most common: Intel® and Intel™ symbols
+            '\u00c2\u00ae': '®',           # â® -> ®
+            '\u00e2\u201e\u00a2': '™',     # â„¢ -> ™ 
+            '\u00c2\u00a9': '©',           # Â© -> ©
+            '\u00c2\u00b0': '°',           # Â° -> °
+            
+            # HTML entities as backup
+            '&reg;': '®',
+            '&trade;': '™', 
+            '&copy;': '©',
+            '&deg;': '°',
+        }
+        
+        # Apply replacements
+        normalized = text
+        for old, new in replacements.items():
+            normalized = normalized.replace(old, new)
+        
+        # Clean up whitespace
+        normalized = re.sub(r'\s+', ' ', normalized).strip()
+        
+        return normalized
+        
+    except Exception:
+        # If all normalization fails, return original text
+        return text

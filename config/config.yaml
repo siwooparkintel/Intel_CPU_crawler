@@ -9,9 +9,12 @@
 # Base URLs to start crawling from (US English only)
 # These are the main processor category pages that contain links to individual CPU specs
 base_urls:
-  - "https://www.intel.com/content/www/us/en/products/details/processors.html"
+  # - "https://www.intel.com/content/www/us/en/products/details/processors.html"
+  - "https://www.intel.com/content/www/us/en/products/details/processors/core-ultra.html"
   - "https://www.intel.com/content/www/us/en/products/details/processors/core.html"
-  - "https://www.intel.com/content/www/us/en/products/details/processors/xeon.html"
+
+  # Temporarily disabled Xeon crawling
+  # - "https://www.intel.com/content/www/us/en/products/details/processors/xeon.html"
 
 # =============================================================================
 # REQUEST CONFIGURATION

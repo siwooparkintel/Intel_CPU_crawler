@@ -147,9 +147,48 @@ class PowerSpecDatabaseManager:
                     self.logger.info(f"CPU already exists in database: {cpu_data['url']}")
                     return False
                 
-                # Extract power specifications from the nested structure
+                # Extract power specifications from the categorized structure
                 specs = cpu_data.get('specifications', {})
-                legacy_specs = specs.get('legacy', {})
+                
+                # Merge specifications from all categories for database insertion
+                all_specs = {}
+                for category in ['essentials', 'cpu_specifications', 'memory_specifications', 
+                               'gpu_specifications', 'npu_specifications', 'expansion_options',
+                               'package_specifications', 'advanced_technologies', 'legacy']:
+                    category_specs = specs.get(category, {})
+                    if isinstance(category_specs, dict):
+                        all_specs.update(category_specs)
+                
+                # Handle core specifications with fallback for older architectures
+                total_cores = self._safe_int(all_specs.get('total_cores'))
+                performance_cores = self._safe_int(all_specs.get('performance_cores'))
+                efficiency_cores = self._safe_int(all_specs.get('efficiency_cores'))
+                
+                # For older Intel processors without P/E core distinction,
+                # assume all cores are performance cores (traditional architecture)
+                is_legacy_architecture = False
+                if total_cores and not performance_cores and not efficiency_cores:
+                    performance_cores = total_cores
+                    efficiency_cores = 0
+                    is_legacy_architecture = True
+                    self.logger.debug(f"Applied legacy core logic: {total_cores} total cores -> {performance_cores}P + {efficiency_cores}E")
+                
+                # Handle frequency specifications with fallback for older architectures
+                max_turbo_freq = self._safe_float(all_specs.get('max_turbo_frequency'))
+                base_freq = self._safe_float(all_specs.get('base_frequency'))
+                p_core_max_freq = self._safe_float(all_specs.get('performance_core_max_frequency'))
+                e_core_max_freq = self._safe_float(all_specs.get('efficiency_core_max_frequency'))
+                p_core_base_freq = self._safe_float(all_specs.get('performance_core_base_frequency'))
+                e_core_base_freq = self._safe_float(all_specs.get('efficiency_core_base_frequency'))
+                
+                # For older processors, map general frequencies to P-core frequencies
+                if is_legacy_architecture:
+                    if max_turbo_freq and not p_core_max_freq:
+                        p_core_max_freq = max_turbo_freq
+                        self.logger.debug(f"Mapped max_turbo_frequency ({max_turbo_freq}) to performance_core_max_frequency")
+                    if base_freq and not p_core_base_freq:
+                        p_core_base_freq = base_freq
+                        self.logger.debug(f"Mapped base_frequency ({base_freq}) to performance_core_base_frequency")
                 
                 # Prepare data for insertion
                 insert_data = {
@@ -157,69 +196,69 @@ class PowerSpecDatabaseManager:
                     'name': cpu_data['name'],
                     
                     # Core specifications
-                    'total_cores': self._safe_int(legacy_specs.get('total_cores')),
-                    'performance_cores': self._safe_int(legacy_specs.get('performance_cores')),
-                    'efficiency_cores': self._safe_int(legacy_specs.get('efficiency_cores')),
-                    'total_threads': self._safe_int(legacy_specs.get('total_threads')),
+                    'total_cores': total_cores,
+                    'performance_cores': performance_cores,
+                    'efficiency_cores': efficiency_cores,
+                    'total_threads': self._safe_int(all_specs.get('total_threads')),
                     
                     # Frequency specifications
-                    'max_turbo_frequency': self._safe_float(legacy_specs.get('max_turbo_frequency')),
-                    'base_frequency': self._safe_float(legacy_specs.get('base_frequency')),
-                    'performance_core_max_frequency': self._safe_float(legacy_specs.get('performance_core_max_frequency')),
-                    'efficiency_core_max_frequency': self._safe_float(legacy_specs.get('efficiency_core_max_frequency')),
-                    'performance_core_base_frequency': self._safe_float(legacy_specs.get('performance_core_base_frequency')),
-                    'efficiency_core_base_frequency': self._safe_float(legacy_specs.get('efficiency_core_base_frequency')),
-                    'turbo_boost_max_frequency': self._safe_float(legacy_specs.get('turbo_boost_max_frequency')),
+                    'max_turbo_frequency': max_turbo_freq,
+                    'base_frequency': base_freq,
+                    'performance_core_max_frequency': p_core_max_freq,
+                    'efficiency_core_max_frequency': e_core_max_freq,
+                    'performance_core_base_frequency': p_core_base_freq,
+                    'efficiency_core_base_frequency': e_core_base_freq,
+                    'turbo_boost_max_frequency': self._safe_float(all_specs.get('turbo_boost_max_frequency')),
                     
                     # Power specifications
-                    'processor_base_power': self._safe_float(legacy_specs.get('processor_base_power')),
-                    'maximum_turbo_power': self._safe_float(legacy_specs.get('maximum_turbo_power')),
-                    'minimum_assured_power': self._safe_float(legacy_specs.get('minimum_assured_power')),
-                    'tdp': self._safe_float(legacy_specs.get('tdp')),
-                    'configurable_tdp_up': self._safe_float(legacy_specs.get('configurable_tdp_up')),
-                    'configurable_tdp_down': self._safe_float(legacy_specs.get('configurable_tdp_down')),
+                    'processor_base_power': self._safe_float(all_specs.get('processor_base_power')),
+                    'maximum_turbo_power': self._safe_float(all_specs.get('maximum_turbo_power')),
+                    'minimum_assured_power': self._safe_float(all_specs.get('minimum_assured_power')),
+                    'tdp': self._safe_float(all_specs.get('tdp')),
+                    'configurable_tdp_up': self._safe_float(all_specs.get('configurable_tdp_up')),
+                    'configurable_tdp_down': self._safe_float(all_specs.get('configurable_tdp_down')),
                     
                     # Process technology
-                    'lithography': legacy_specs.get('lithography'),
-                    'process_node': legacy_specs.get('process_node'),
+                    'lithography': all_specs.get('lithography'),
+                    'process_node': all_specs.get('process_node'),
                     
                     # Cache specifications
-                    'cache_size': self._safe_float(legacy_specs.get('cache_size')),
-                    'smart_cache': self._safe_float(legacy_specs.get('smart_cache')),
-                    'l1_cache': legacy_specs.get('l1_cache'),
-                    'l2_cache': legacy_specs.get('l2_cache'),
-                    'l3_cache': self._safe_float(legacy_specs.get('l3_cache')),
+                    'cache_size': self._safe_float(all_specs.get('cache_size')),
+                    'smart_cache': self._safe_float(all_specs.get('smart_cache')),
+                    'l1_cache': all_specs.get('l1_cache'),
+                    'l2_cache': all_specs.get('l2_cache'),
+                    'l3_cache': self._safe_float(all_specs.get('l3_cache')),
                     
                     # Memory specifications
-                    'max_memory_size': self._safe_int(legacy_specs.get('max_memory_size')),
-                    'memory_channels': self._safe_int(legacy_specs.get('memory_channels')),
-                    'memory_types': legacy_specs.get('memory_types'),
-                    'memory_speed': self._safe_int(legacy_specs.get('memory_speed')),
+                    'max_memory_size': self._safe_int(all_specs.get('max_memory_size')),
+                    'memory_channels': self._safe_int(all_specs.get('memory_channels')),
+                    'memory_types': all_specs.get('memory_types'),
+                    'memory_speed': self._safe_int(all_specs.get('memory_speed')),
                     
                     # Graphics specifications
-                    'gpu_name': legacy_specs.get('gpu_name'),
-                    'graphics_max_frequency': self._safe_float(legacy_specs.get('graphics_max_frequency')),
-                    'graphics_base_frequency': self._safe_float(legacy_specs.get('graphics_base_frequency')),
-                    'xe_cores': self._safe_int(legacy_specs.get('xe_cores')),
-                    'execution_units': self._safe_int(legacy_specs.get('execution_units')),
+                    'gpu_name': all_specs.get('gpu_name'),
+                    'graphics_max_frequency': self._safe_float(all_specs.get('graphics_max_frequency')),
+                    'graphics_base_frequency': self._safe_float(all_specs.get('graphics_base_frequency')),
+                    'xe_cores': self._safe_int(all_specs.get('xe_cores')),
+                    'execution_units': self._safe_int(all_specs.get('execution_units')),
                     
                     # AI/NPU specifications
-                    'npu_name': legacy_specs.get('npu_name'),
-                    'npu_tops': self._safe_int(legacy_specs.get('npu_tops')),
-                    'overall_tops': self._safe_int(legacy_specs.get('overall_tops')),
+                    'npu_name': all_specs.get('npu_name'),
+                    'npu_tops': self._safe_int(all_specs.get('npu_tops')),
+                    'overall_tops': self._safe_int(all_specs.get('overall_tops')),
                     
                     # Package specifications
-                    'socket': legacy_specs.get('socket'),
-                    'max_operating_temperature': self._safe_int(legacy_specs.get('max_operating_temperature')),
-                    'package_size': legacy_specs.get('package_size'),
-                    'tjunction': self._safe_int(legacy_specs.get('tjunction')),
+                    'socket': all_specs.get('socket'),
+                    'max_operating_temperature': self._safe_int(all_specs.get('max_operating_temperature')),
+                    'package_size': all_specs.get('package_size'),
+                    'tjunction': self._safe_int(all_specs.get('tjunction')),
                     
                     # Product information
-                    'code_name': legacy_specs.get('code_name'),
-                    'product_collection': legacy_specs.get('product_collection'),
-                    'vertical_segment': legacy_specs.get('vertical_segment'),
-                    'launch_date': legacy_specs.get('launch_date'),
-                    'instruction_set': legacy_specs.get('instruction_set'),
+                    'code_name': all_specs.get('code_name'),
+                    'product_collection': all_specs.get('product_collection'),
+                    'vertical_segment': all_specs.get('vertical_segment'),
+                    'launch_date': all_specs.get('launch_date'),
+                    'instruction_set': all_specs.get('instruction_set'),
                     
                     # Store additional specs as JSON
                     'additional_specs': json.dumps({
