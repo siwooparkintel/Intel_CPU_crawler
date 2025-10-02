@@ -7,8 +7,6 @@ import logging
 import colorlog
 import requests
 from typing import Dict, Any
-import random
-import time
 
 
 def setup_logging(level: str = 'INFO') -> logging.Logger:
@@ -114,18 +112,6 @@ def handle_request_error(error: Exception, url: str, logger: logging.Logger):
         logger.error(f"Unexpected error for URL {url}: {str(error)}")
 
 
-def random_delay(min_delay: float = 0.5, max_delay: float = 2.0):
-    """
-    Add random delay to avoid being detected as a bot.
-    
-    Args:
-        min_delay: Minimum delay in seconds
-        max_delay: Maximum delay in seconds
-    """
-    delay = random.uniform(min_delay, max_delay)
-    time.sleep(delay)
-
-
 def validate_url(url: str) -> bool:
     """
     Validate if a URL is properly formatted.
@@ -193,45 +179,3 @@ def safe_extract_number(text: str, pattern: str) -> str:
         return match.group(1) if match else ""
     except Exception:
         return ""
-
-
-def format_file_size(size_bytes: int) -> str:
-    """
-    Format file size in human readable format.
-    
-    Args:
-        size_bytes: Size in bytes
-        
-    Returns:
-        Formatted size string
-    """
-    if size_bytes == 0:
-        return "0 B"
-    
-    size_names = ["B", "KB", "MB", "GB", "TB"]
-    import math
-    i = int(math.floor(math.log(size_bytes, 1024)))
-    p = math.pow(1024, i)
-    s = round(size_bytes / p, 2)
-    
-    return f"{s} {size_names[i]}"
-
-
-def create_backup_filename(original_filename: str) -> str:
-    """
-    Create a backup filename with timestamp.
-    
-    Args:
-        original_filename: Original filename
-        
-    Returns:
-        Backup filename with timestamp
-    """
-    from datetime import datetime
-    from pathlib import Path
-    
-    path = Path(original_filename)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_name = f"{path.stem}_backup_{timestamp}{path.suffix}"
-    
-    return str(path.parent / backup_name)

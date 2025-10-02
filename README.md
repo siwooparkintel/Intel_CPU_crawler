@@ -208,13 +208,45 @@ Intel_cpu_crawler/
 - **Duplicate Prevention**: URL-based deduplication with 100% effectiveness
 - **US English Filtering**: Eliminates international page duplicates
 
-## 🤝 Contributing
+## � Testing
+
+The project includes a comprehensive testing framework to ensure code quality and system health.
+
+### Quick Test
+```bash
+# Run integration tests (recommended after any changes)
+python run_tests.py --integration
+
+# Run with verbose output
+python run_tests.py --integration --verbose
+```
+
+### Complete Test Suite
+```bash
+# Run all tests (integration + unit)
+python run_tests.py
+
+# Run only unit tests
+python run_tests.py --unit
+```
+
+### Test Coverage
+- **Integration Tests**: Complete system workflow testing
+- **Database Operations**: CRUD operations and data integrity
+- **Configuration Loading**: YAML parsing and validation
+- **Utility Functions**: All helper functions tested
+- **CLI Interface**: Command structure verification
+
+For detailed testing documentation, see [TESTING.md](TESTING.md).
+
+## �🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. **Run tests**: `python run_tests.py --integration`
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
 
 ## 📄 License
 

@@ -1,6 +1,20 @@
 """
-Intel CPU Crawler - Main crawler logic
-Handles web scraping of Intel CPU specifications.
+Intel CPU Crawler - Web Scraping Module
+
+This module orchestrates the web scraping process for Intel CPU specifications.
+It coordinates between URL discovery, page parsing, and data storage while
+ensuring proper rate limiting and error handling.
+
+Key Components:
+    - IntelCpuCrawler: Main crawler class with database integration
+    - URL filtering for US English specification pages only
+    - Duplicate detection and prevention
+    - Comprehensive logging and error handling
+    - Rate limiting to avoid being blocked
+
+Example:
+    crawler = IntelCpuCrawler(config_path='config/config.yaml')
+    results = crawler.crawl(max_pages=10)
 """
 
 import requests

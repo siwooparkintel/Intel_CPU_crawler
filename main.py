@@ -1,7 +1,21 @@
 #!/usr/bin/env python3
 """
-Intel CPU Crawler - Main Entry Point
-Crawls Intel CPU specifications and data from Intel's official website.
+Intel CPU Crawler - Main CLI Interface
+
+This module provides a comprehensive command-line interface for crawling, managing,
+and exporting Intel CPU specifications with focus on power modeling data.
+
+Features:
+    - Crawl Intel CPU specification pages
+    - Store data in SQLite database
+    - Export data for power prediction modeling
+    - Search and manage CPU records
+    - Comprehensive database statistics
+
+Usage:
+    python main.py crawl --max-pages 20 --verbose
+    python main.py db-stats
+    python main.py export-modeling-data
 """
 
 import click
@@ -105,7 +119,6 @@ def db_stats(db_path):
     """Show database statistics."""
     try:
         from src.database_manager import PowerSpecDatabaseManager
-        from src.utils import setup_logging
         
         setup_logging('INFO')
         logger = logging.getLogger(__name__)
@@ -160,7 +173,6 @@ def export_modeling_data(db_path, output):
     """Export CPU data for power prediction modeling."""
     try:
         from src.database_manager import PowerSpecDatabaseManager
-        from src.utils import setup_logging
         
         setup_logging('INFO')
         logger = logging.getLogger(__name__)
@@ -187,7 +199,6 @@ def clear_db(db_path):
     """Clear all data from the database."""
     try:
         from src.database_manager import PowerSpecDatabaseManager
-        from src.utils import setup_logging
         import os
         
         setup_logging('INFO')
@@ -218,7 +229,6 @@ def search(db_path, name_pattern):
     """Search for CPUs by name pattern."""
     try:
         from src.database_manager import PowerSpecDatabaseManager
-        from src.utils import setup_logging
         
         setup_logging('INFO')
         

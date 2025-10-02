@@ -1,6 +1,22 @@
 """
-Data Manager - Data storage and export functionality
-Handles saving scraped data in various formats.
+Data Manager - File-based Data Storage and Export
+
+Legacy file-based data management system for JSON and CSV exports.
+Primarily used for backward compatibility and simple data exports.
+
+Note: For production use, prefer the PowerSpecDatabaseManager for
+structured storage and advanced analytics.
+
+Features:
+    - JSON export with proper encoding
+    - CSV export with nested data flattening
+    - Error handling and logging
+    - Flexible output directory management
+
+Usage:
+    data_manager = DataManager(Path('data'))
+    data_manager.save_json(cpu_data, 'cpu_specs.json')
+    data_manager.save_csv(cpu_data, 'cpu_specs.csv')
 """
 
 import json
@@ -105,95 +121,5 @@ class DataManager:
         
         return flattened
     
-    def save_summary_report(self, data: List[Dict[str, Any]], filename: str = None):
-        """
-        Save a summary report of the scraped data.
-        
-        Args:
-            data: List of CPU data dictionaries
-            filename: Output filename (optional)
-        """
-        if not data:
-            self.logger.warning("No data to generate summary report")
-            return
-        
-        if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"summary_report_{timestamp}.txt"
-        
-        filepath = self.output_dir / filename
-        
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write("Intel CPU Crawler - Summary Report\n")
-                f.write("=" * 40 + "\n")
-                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write(f"Total CPUs scraped: {len(data)}\n\n")
-                
-                # CPU names
-                f.write("CPU Names:\n")
-                f.write("-" * 20 + "\n")
-                for i, cpu in enumerate(data, 1):
-                    name = cpu.get('name', 'Unknown')
-                    f.write(f"{i:3d}. {name}\n")
-                
-                f.write("\n")
-                
-                # Common specifications analysis
-                spec_counts = {}
-                for cpu in data:
-                    specs = cpu.get('specifications', {})
-                    for spec_key in specs.keys():
-                        spec_counts[spec_key] = spec_counts.get(spec_key, 0) + 1
-                
-                if spec_counts:
-                    f.write("Most Common Specifications:\n")
-                    f.write("-" * 30 + "\n")
-                    sorted_specs = sorted(spec_counts.items(), key=lambda x: x[1], reverse=True)
-                    for spec, count in sorted_specs[:10]:  # Top 10
-                        percentage = (count / len(data)) * 100
-                        f.write(f"{spec}: {count} CPUs ({percentage:.1f}%)\n")
-                
-                f.write("\n")
-                
-                # URLs scraped
-                f.write("URLs Scraped:\n")
-                f.write("-" * 15 + "\n")
-                for cpu in data:
-                    url = cpu.get('url', 'Unknown URL')
-                    f.write(f"{url}\n")
-            
-            self.logger.info(f"Summary report saved to {filepath}")
-            
-        except Exception as e:
-            self.logger.error(f"Error saving summary report {filepath}: {str(e)}")
-            raise
+
     
-    def load_json(self, filename: str) -> List[Dict[str, Any]]:
-        """
-        Load data from JSON file.
-        
-        Args:
-            filename: Input filename
-            
-        Returns:
-            List of CPU data dictionaries
-        """
-        filepath = self.output_dir / filename
-        
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            self.logger.info(f"Loaded {len(data)} records from {filepath}")
-            return data
-            
-        except FileNotFoundError:
-            self.logger.error(f"File not found: {filepath}")
-            return []
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Error parsing JSON file {filepath}: {str(e)}")
-            return []
-        except Exception as e:
-            self.logger.error(f"Error loading JSON file {filepath}: {str(e)}")
-            return []
