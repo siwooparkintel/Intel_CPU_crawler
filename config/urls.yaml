@@ -1,0 +1,48 @@
+# Target URLs for Intel CPU specifications
+
+processor_categories:
+  core_processors:
+    base_url: "https://www.intel.com/content/www/us/en/products/details/processors/core.html"
+    description: "Intel Core processor family"
+    
+  xeon_processors:
+    base_url: "https://www.intel.com/content/www/us/en/products/details/processors/xeon.html" 
+    description: "Intel Xeon processor family for servers and workstations"
+    
+  pentium_processors:
+    base_url: "https://www.intel.com/content/www/us/en/products/details/processors/pentium.html"
+    description: "Intel Pentium processor family"
+    
+  celeron_processors:
+    base_url: "https://www.intel.com/content/www/us/en/products/details/processors/celeron.html"
+    description: "Intel Celeron processor family"
+
+# Specific product line URLs (if available)
+product_lines:
+  - name: "13th Gen Intel Core"
+    url: "https://www.intel.com/content/www/us/en/products/details/processors/core/13th-gen.html"
+    
+  - name: "12th Gen Intel Core"
+    url: "https://www.intel.com/content/www/us/en/products/details/processors/core/12th-gen.html"
+    
+  - name: "11th Gen Intel Core"
+    url: "https://www.intel.com/content/www/us/en/products/details/processors/core/11th-gen.html"
+
+# Search patterns for CPU URLs
+url_patterns:
+  - "/processors/"
+  - "/cpu/"
+  - "/core/"
+  - "/xeon/"
+  - "/pentium/"
+  - "/celeron/"
+
+# URL filters (avoid these patterns)
+exclude_patterns:
+  - "/downloads/"
+  - "/support/"
+  - "/drivers/"
+  - "/forums/"
+  - "/community/"
+  - "/press-kit/"
+  - "/newsroom/"

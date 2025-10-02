@@ -1,0 +1,63 @@
+# Intel CPU Crawler Configuration
+
+# Base URLs to start crawling from (US English only)
+base_urls:
+  - "https://www.intel.com/content/www/us/en/products/details/processors.html"
+  - "https://www.intel.com/content/www/us/en/products/details/processors/core.html"
+  - "https://www.intel.com/content/www/us/en/products/details/processors/xeon.html"
+
+# URL filtering (only process US English Intel pages)
+url_filtering:
+  required_path: "/us/en/"
+  required_domain: "intel.com"
+  exclude_domains: ["intel.co.id", "intel.de", "intel.fr", "intel.jp"]
+
+# Request configuration
+request_timeout: 30
+max_retries: 3
+user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+# Rate limiting
+default_delay: 1.0
+random_delay_range:
+  min: 0.5
+  max: 2.0
+
+# Output configuration
+output_formats:
+  - json
+  - csv
+  - database
+
+# Database configuration
+database:
+  enabled: true
+  path: "data/intel_cpu_power_specs.db"
+  backup_on_start: true
+  export_for_modeling: true
+
+# Logging configuration
+log_level: INFO
+log_to_file: true
+log_file_rotation: daily
+
+# Parsing configuration
+max_page_size: 1048576  # 1MB
+follow_redirects: true
+max_redirects: 5
+
+# CPU specification fields to extract
+target_specifications:
+  - "Processor Number"
+  - "Code Name"
+  - "Cores"
+  - "Threads"
+  - "Base Frequency"
+  - "Max Turbo Frequency"
+  - "Cache"
+  - "TDP"
+  - "Memory Support"
+  - "Graphics"
+  - "Socket"
+  - "Launch Date"
+  - "Lithography"

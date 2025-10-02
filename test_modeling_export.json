@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "exported_at": "2025-10-02T14:02:08.715237",
+    "total_cpus": 1,
+    "description": "Intel CPU power specifications for SoC power prediction modeling"
+  },
+  "data": [
+    {
+      "name": "Intel® Core™ Ultra 9 Processor 288V",
+      "total_cores": 8,
+      "performance_cores": 4,
+      "efficiency_cores": 4,
+      "max_turbo_frequency": 5.1,
+      "base_frequency": 3.3,
+      "performance_core_max_frequency": 5.1,
+      "efficiency_core_max_frequency": 3.7,
+      "processor_base_power": 30.0,
+      "maximum_turbo_power": 37.0,
+      "minimum_assured_power": 17.0,
+      "lithography": null,
+      "cache_size": 12.0,
+      "memory_channels": 2,
+      "memory_speed": 8533,
+      "graphics_max_frequency": 2.05,
+      "xe_cores": 8,
+      "npu_tops": 8,
+      "overall_tops": 8,
+      "max_operating_temperature": 100,
+      "vertical_segment": "mobile",
+      "launch_date": "q3'24"
+    }
+  ]
+}
