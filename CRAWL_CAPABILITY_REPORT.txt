@@ -166,21 +166,25 @@ Crawling Strategy:
 
 To crawl all Core processors:
 
-1. Update config/urls.yaml with processor family URLs:
-   ```yaml
-   processor_listing_urls:
-     - https://www.intel.com/content/www/us/en/ark/products/series/241071/...
-     - https://www.intel.com/content/www/us/en/ark/products/series/230496/...
-     # ... add all 52 family URLs
+1. Add processor family URLs to data/all_core_processor_urls.txt:
+   ```
+   https://www.intel.com/content/www/us/en/ark/products/series/241071/...
+   https://www.intel.com/content/www/us/en/ark/products/series/230496/...
+   # ... add all 52 family URLs (one per line)
    ```
 
-2. Run crawler without page limit:
+2. Run the mass crawler script:
    ```
-   python main.py crawl
+   python scripts/crawl_all_families.py
    ```
 
-3. Or crawl specific generation:
-   - Edit config/urls.yaml to include only desired families
+3. Or use the automated updater to add new products:
+   ```
+   python scripts/update_database.py --verbose
+   ```
+
+4. Or crawl specific generation with main script:
+   - Edit config/config.yaml base_urls to target specific families
    - Run: python main.py crawl --max-pages 100
 
 4. Monitor progress:

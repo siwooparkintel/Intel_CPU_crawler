@@ -132,12 +132,21 @@ url_filtering:
   required_domain: "intel.com"
 ```
 
-### URL Configuration (`config/urls.yaml`)
+### URL Configuration
+
+**Main Settings** (`config/config.yaml`):
 ```yaml
 # Base URLs for crawling (US English only)
 base_urls:
   - "https://www.intel.com/content/www/us/en/products/details/processors/core.html"
-  - "https://www.intel.com/content/www/us/en/products/details/processors/xeon.html"
+  - "https://www.intel.com/content/www/us/en/products/details/processors/core-ultra.html"
+```
+
+**Processor Family URLs** (`data/all_core_processor_urls.txt`):
+```
+https://www.intel.com/content/www/us/en/ark/products/series/241071/...
+https://www.intel.com/content/www/us/en/ark/products/series/230496/...
+# One URL per line for each processor family (52 families)
 ```
 
 ## 📁 Project Structure
@@ -151,10 +160,10 @@ Intel_cpu_crawler/
 │   ├── data_manager.py              # File-based data management
 │   └── utils.py                     # Utilities and logging
 ├── 📁 config/                       # Configuration files
-│   ├── config.yaml                  # Main settings
-│   └── urls.yaml                    # Crawling URLs
+│   └── config.yaml                  # Main settings (URLs, timeouts, etc.)
 ├── 📁 data/                         # Output data storage
 │   ├── intel_cpu_power_specs.db     # SQLite database
+│   ├── all_core_processor_urls.txt  # Processor family URLs
 │   ├── intel_cpus.json              # JSON export
 │   └── cpu_power_modeling_data.json # Power modeling data
 ├── 📁 logs/                         # Application logs
