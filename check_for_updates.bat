@@ -9,7 +9,7 @@ echo.
 
 cd /d "%~dp0"
 
-D:\Users\siwoopar\code\Intel_cpu_crawler\.venv\Scripts\python.exe update_database.py --dry-run --verbose
+D:\Users\siwoopar\code\Intel_cpu_crawler\.venv\Scripts\python.exe scripts\update_database.py --dry-run --verbose
 
 echo.
 echo ================================================================================

@@ -173,8 +173,25 @@ data/*.txt
 !data/README.md
 !logs/README.md
 
+# Database backups
+data/*_backup_*.db
+data/*.db.backup
+
+# Temporary debug/analysis scripts
+analyze_*.py
+check_*.py
+debug_*.py
+test_*.py
+verify_*.py
+!tests/test_*.py
+
 # Temporary files
 *.tmp
 *.temp
 .DS_Store
 Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

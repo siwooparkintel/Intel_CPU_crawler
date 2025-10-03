@@ -22,7 +22,7 @@ echo Running update check...
 echo Start time: %date% %time%
 echo.
 
-D:\Users\siwoopar\code\Intel_cpu_crawler\.venv\Scripts\python.exe update_database.py --verbose > "logs\update_%TIMESTAMP%.log" 2>&1
+D:\Users\siwoopar\code\Intel_cpu_crawler\.venv\Scripts\python.exe scripts\update_database.py --verbose > "logs\update_%TIMESTAMP%.log" 2>&1
 
 REM Check exit code
 if %ERRORLEVEL% EQU 0 (
@@ -48,7 +48,4 @@ if %ERRORLEVEL% EQU 0 (
 echo.
 echo End time: %date% %time%
 echo ================================================================================
-echo.
-
-REM Pause only if run manually (not from task scheduler)
-if "%1"=="" pause
+pause
