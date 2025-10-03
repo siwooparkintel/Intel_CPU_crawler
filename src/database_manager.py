@@ -254,7 +254,7 @@ class PowerSpecDatabaseManager:
                     'tjunction': self._safe_int(all_specs.get('tjunction')),
                     
                     # Product information
-                    'code_name': all_specs.get('code_name'),
+                    'code_name': self._clean_code_name(all_specs.get('code_name')),
                     'product_collection': all_specs.get('product_collection'),
                     'vertical_segment': all_specs.get('vertical_segment'),
                     'launch_date': all_specs.get('launch_date'),
@@ -296,6 +296,30 @@ class PowerSpecDatabaseManager:
         """Check if CPU with given URL already exists."""
         cursor.execute('SELECT id FROM cpu_power_specs WHERE url = ?', (url,))
         return cursor.fetchone() is not None
+    
+    def _clean_code_name(self, code_name: Any) -> Optional[str]:
+        """Clean code name by removing 'Products formerly' prefix.
+        
+        Args:
+            code_name: Raw code name from Intel (e.g., "Products formerly Lunar Lake")
+            
+        Returns:
+            Cleaned code name (e.g., "Lunar Lake") or None
+        """
+        if not code_name or not isinstance(code_name, str):
+            return None
+        
+        # Remove "Products formerly" prefix (case insensitive)
+        import re
+        cleaned = re.sub(r'^products\s+formerly\s+', '', code_name, flags=re.IGNORECASE)
+        
+        # Remove any leading/trailing whitespace
+        cleaned = cleaned.strip()
+        
+        # Remove trailing colon if present (some Intel pages have ":")
+        cleaned = cleaned.rstrip(':')
+        
+        return cleaned if cleaned and cleaned != ':' else None
     
     def _safe_int(self, value: Any) -> Optional[int]:
         """Safely convert value to integer."""
